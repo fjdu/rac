@@ -1,0 +1,209 @@
+\documentclass{article}
+
+\usepackage{amsmath,amssymb}
+\usepackage{hyperref}
+%\usepackage[T1]{fontenc}
+%\usepackage{lmodern}
+\usepackage{xcolor}
+\usepackage{listings}
+\lstset{language=[90]Fortran,
+  basicstyle=\ttfamily,
+  keywordstyle=\color{red},
+  commentstyle=\color{darkgray},
+  numbers=left, numberstyle=\tiny, numbersep=5pt,
+  backgroundcolor=\color[rgb]{0.9,0.9,0.9},
+  frame=single,
+  morecomment=[l]{!\ }% Comment only with space after !
+}
+
+\newcommand{\cds}[1]{\texttt{#1}}
+
+\newcommand{\python}{\texttt{Python}}
+\newcommand{\ractdm}{\textsf{rac2d}\textit{m}}
+\newcommand{\ractd}{\textsf{rac2d}}
+\newcommand{\radtran}{\texttt{rtrf}}
+\newcommand{\structadj}{\texttt{structadj}}
+\newcommand{\thermochem}{\texttt{thermochem}}
+\newcommand{\makeimage}{\texttt{makeimage}}
+
+\title{Documentation for \ractdm}
+\author{Fujun Du\\
+\url{fujun.du@gmail.com}}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\section{Guideline}
+
+The \ractdm{} package is designed to model a static disk structure and its thermochemistry.  It is derived from the \ractd{} package.  The letter ``m'' in the name stands for ``modularized''.  For the ease of implementation, the interface to each module is implemented with files.
+
+Using script languages such as \python, different modules can be chained and iterated to achieve a specific goal.
+
+\section{Description of modules}
+
+\subsection{Radiative transfer and bulk radiation field solution: \radtran}
+
+\subsubsection{Overall configuration}
+
+\begin{lstlisting}
+&conf_nml_rt
+  conf_rt%struct_file = "struct.dat"
+  conf_rt%opti_files = "sil.dat" "gra.dat"
+  conf_rt%rad_source_files = "s1.dat"  "s2.dat"
+  conf_rt%star_mass_Msun = 0.6D0
+  conf_rt%nphoton = 1000000
+  conf_rt%nmax_encounter = 1999999999
+  conf_rt%escaped_photons_file = 'escaped_ph.dat'
+  conf_rt%collect_photon   = .true.
+  conf_rt%collect_lam_min_AA  = 1D0
+  conf_rt%collect_lam_max_AA  = 1D8
+  conf_rt%collect_nmu      = 3
+  conf_rt%collect_ang_mins_deg = 0D0 4D0  80D0
+  conf_rt%collect_ang_maxs_deg = 3D0 10D0 90D0
+  conf_rt%nlen_lut         = 2048
+  conf_rt%Tdust_min_K      = 1D0
+  conf_rt%Tdust_max_K      = 2D3
+  conf_rt%dist_to_Earth_pc = 51.0D0
+/
+\end{lstlisting}
+
+\subsubsection{Specification of matter distribution}
+
+\begin{lstlisting}
+format ! Default to 1
+number_of_species  number_of_data_points
+r1  z1  n11  n21  n31 ...
+r2  z2  n12  n22  n32 ...
+...
+\end{lstlisting}
+Here \cds{nij} means the density of the \(i\)th dust species at the \(j\)th location.
+
+\subsubsection{Specification of optical properties}
+
+\begin{lstlisting}
+number_of_data_points
+angstrom1  Q_abs1  Q_sca1  g1
+angstrom2  Q_abs2  Q_sca2  g2
+...
+\end{lstlisting}
+
+\subsubsection{Specification of radiation sources}
+
+Multiple radiation sources are allowed.  Each source can have a different type.  At present the following types are supported:
+\begin{itemize}
+  \item \cds{point}: point source
+  \item \cds{sphere}: photons are emitted from the surface of a sphere
+  \item \cds{isotropic}: photons are emitted from an isotropic background
+  \item \cds{directional}: photons are emitted from a single direction
+\end{itemize}
+The following are example radiation source files:
+
+\begin{lstlisting}
+point
+x_au  y_au  z_au
+number_of_data_points_of_spectrum total_luminosity_cgs
+angstrom1  F1_cgs
+angstrom2  F2_cgs
+...
+\end{lstlisting}
+
+\begin{lstlisting}
+sphere
+x_cen_au  y_cen_au  z_cen_au  r_sphere_Rsun
+number_of_data_points_of_spectrum total_luminosity_cgs
+angstrom1  F1_cgs
+angstrom2  F2_cgs
+...
+\end{lstlisting}
+
+\begin{lstlisting}
+isotropic
+! Empty line
+number_of_data_points_of_spectrum energy_density_cgs
+angstrom1  F1_cgs
+angstrom2  F2_cgs
+...
+\end{lstlisting}
+
+\begin{lstlisting}
+directional
+v_x  v_y  v_z
+number_of_data_points_of_spectrum flux_density_cgs
+angstrom1  F1_cgs
+angstrom2  F2_cgs
+...
+\end{lstlisting}
+
+\subsubsection{Output}
+
+\begin{itemize}
+  \item Temperature distribution
+  \item Internal radiation field
+  \item Escaped radiation field
+\end{itemize}  
+
+\subsection{Disk structure adjustment: \structadj}
+
+\subsubsection{Overall configuration}
+
+\begin{lstlisting}
+&conf_nml_struct_adj
+  conf_struct_adj%density_file = "dens.dat"
+  conf_struct_adj%density_file_new = "dens_new.dat"
+  conf_struct_adj%temperature_file = "temperature.dat"
+/
+\end{lstlisting}
+
+\subsubsection{Output}
+
+\begin{itemize}
+  \item New density distribution
+\end{itemize}  
+
+\subsection{Thermochemical calculation: \thermochem}
+
+Here we assume the thermochemical calculation is only done for a single cell.  To calculate for the whole disk just call the module in a loop or use the \cds{map} function in \python.
+
+\subsubsection{Overall configuration}
+
+\begin{lstlisting}
+&conf_nml_thermochem
+  conf_thermochem%network_file = "rate12.dat"
+  conf_thermochem%init_file = "init.dat"
+  conf_thermochem%enthalpy_file = "enthalpy.dat"
+  conf_thermochem%Tgas = 20D0
+  conf_thermochem%Tdust = 20D0
+  conf_thermochem%sigdust_cm2 = 20D0
+  conf_thermochem%G0 = 1D0
+  conf_thermochem%Xray = 0D0
+  conf_thermochem%zeta_cosmicray_H2 = 1.36D-17
+  conf_thermochem%PAH_abundance = 1.6D-9
+  conf_thermochem%Av = 10D0
+  conf_thermochem%filename_CII = ""
+  conf_thermochem%filename_OI = ""
+  conf_thermochem%filename_NII = ""
+  conf_thermochem%filename_SiII = ""
+  conf_thermochem%filename_FeII = ""
+  conf_thermochem%dt_first_step = 1D-8
+  conf_thermochem%t_max = 1D6
+  conf_thermochem%ratio_tstep = 1.1D0
+  conf_thermochem%max_runtime_allowed = 60D0
+  conf_thermochem%RTOL = 1D-6
+  conf_thermochem%ATOL = 1D-30
+/
+\end{lstlisting}
+
+\subsubsection{Output}
+
+\begin{itemize}
+  \item For a single location, output the gas temperature and chemical abundances as a function of time.
+  \item Optional output
+\end{itemize}  
+
+\subsection{Make images: \makeimage}
+
+\section{Examples}
+
+\end{document}
