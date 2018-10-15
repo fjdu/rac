@@ -37,8 +37,8 @@
 
 \section{Guideline}
 
-The \ractdm{} package is designed to model a static disk structure and its thermochemistry.  It is derived from the \ractd{} package.  The letter ``m'' in the name stands for ``modularized''.  For the ease of implementation, the interface to each module is implemented with files.
-
+The \ractdm{} package is designed to model a static disk structure and its thermochemistry.  It is derived from the \ractd{} package.  The letter ``m'' in the name stands for ``modularized''.  Different modules of this package are designed to be as independent to each other as possible.
+For the ease of implementation, the interface to each module is implemented with files.  File IO is slow, but calculations usually take more time, hence IO should not be a bottleneck.
 Using script languages such as \python, different modules can be chained and iterated to achieve a specific goal.
 
 \section{Description of modules}
@@ -50,26 +50,31 @@ Using script languages such as \python, different modules can be chained and ite
 \begin{lstlisting}
 &conf_nml_rt
   conf_rt%struct_file = "struct.dat"
-  conf_rt%opti_files = "sil.dat" "gra.dat"
+  conf_rt%opti_files = "sil.dat"  "gra.dat"
   conf_rt%rad_source_files = "s1.dat"  "s2.dat"
   conf_rt%star_mass_Msun = 0.6D0
   conf_rt%nphoton = 1000000
   conf_rt%nmax_encounter = 1999999999
-  conf_rt%escaped_photons_file = 'escaped_ph.dat'
+  conf_rt%randnumber_save_file = "rd_saved.dat"
+  conf_rt%escaped_photons_file = "escaped_ph.dat"
   conf_rt%collect_photon   = .true.
   conf_rt%collect_lam_min_AA  = 1D0
   conf_rt%collect_lam_max_AA  = 1D8
   conf_rt%collect_nmu      = 3
   conf_rt%collect_ang_mins_deg = 0D0 4D0  80D0
   conf_rt%collect_ang_maxs_deg = 3D0 10D0 90D0
-  conf_rt%nlen_lut         = 2048
+  conf_rt%nlen_lut         = 4096
   conf_rt%Tdust_min_K      = 1D0
-  conf_rt%Tdust_max_K      = 2D3
-  conf_rt%dist_to_Earth_pc = 51.0D0
+  conf_rt%Tdust_max_K      = 5D3
+  conf_rt%dist_to_Earth_pc = 51D0
 /
 \end{lstlisting}
+Notes:
+\begin{itemize}
+  \item Each type of dust grain has a separate entry in the \cds{opti\_files} list.
+\end{itemize}  
 
-\subsubsection{Specification of matter distribution}
+\subsubsection{Specification of matter distribution: \cds{struct\_file}}
 
 \begin{lstlisting}
 format ! Default to 1
@@ -80,7 +85,7 @@ r2  z2  n12  n22  n32 ...
 \end{lstlisting}
 Here \cds{nij} means the density of the \(i\)th dust species at the \(j\)th location.
 
-\subsubsection{Specification of optical properties}
+\subsubsection{Specification of optical properties: \cds{opti\_files}}
 
 \begin{lstlisting}
 number_of_data_points
@@ -89,7 +94,7 @@ angstrom2  Q_abs2  Q_sca2  g2
 ...
 \end{lstlisting}
 
-\subsubsection{Specification of radiation sources}
+\subsubsection{Specification of radiation sources: \cds{rad\_source\_files}}
 
 Multiple radiation sources are allowed.  Each source can have a different type.  At present the following types are supported:
 \begin{itemize}
@@ -204,6 +209,42 @@ Here we assume the thermochemical calculation is only done for a single cell.  T
 
 \subsection{Make images: \makeimage}
 
-\section{Examples}
+\subsubsection{Overall configuration}
+
+\begin{lstlisting}
+&conf_nml_image
+  conf_img%molecule_density_file = "mol_dens.dat"
+  conf_img%Tgas_file = "Tgas.dat"
+  conf_img%continuum_file = "cont.dat"
+  conf_img%transition_file = "12C16O_H2.dat"
+  conf_img%database_name = "lamda"
+  conf_img%molecule_name = "CO"
+  conf_img%useLTE = .true.
+  conf_img%image_type = "cube"
+  conf_img%out_dir = "images"
+  conf_img%maxx = 200D0
+  conf_img%maxy = 200D0
+  conf_img%nx = 401
+  conf_img%ny = 401
+  conf_img%nf = 201
+  conf_img%nfreq_window = 3
+  conf_img%freq_mins = 0.9D11  3.4D11  6.90D11
+  conf_img%freq_maxs = 3.0D11  3.6D11  6.92D11
+  conf_img%E_min = 0D0
+  conf_img%E_max = 3D3
+  conf_img%n_theta = 1
+  conf_img%view_thetas = 7D0
+  conf_img%dist_to_Earth_pc = 51D0
+  conf_img%vel_width_kms = 30D0
+/
+\end{lstlisting}
+
+\subsubsection{Output}
+
+\begin{itemize}
+  \item 3D data cube, 2D image, or 1D spectrum
+\end{itemize}  
+
+%\section{Examples}
 
 \end{document}

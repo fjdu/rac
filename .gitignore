@@ -1,0 +1,12 @@
+*.o
+*.i90
+*.so
+*.i
+*.out
+*.mod
+*.aux
+*.log
+*.toc
+.*.sw*
+.*un~
+*tmp*
