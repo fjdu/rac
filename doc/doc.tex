@@ -204,6 +204,10 @@ Here we assume the thermochemical calculation is only done for a single cell.  T
   conf_thermochem%ATOL = 1D-30
 /
 \end{lstlisting}
+Notes:
+\begin{itemize}
+  \item Need time dependence of physical parameters?  The most flexible way to do it may be to restart with new physical parameters at different time steps, which admittedly will be slower than the ``built-in'' approach.
+\end{itemize}  
 
 \subsubsection{Output}
 
